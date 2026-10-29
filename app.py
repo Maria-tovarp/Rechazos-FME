@@ -590,7 +590,8 @@ def _fme_visible_rejections(df):
         + df.get("audit_remark_original", pd.Series("", index=df.index)).fillna("").astype(str)
     )
     initial_audit_rejection = feedback_qty.eq(0) & audit_text.str.contains("RECHAZ|REJECT", case=False, na=False)
-    return by_current_result | initial_audit_rejection
+    is_approved = df.get("current_result", pd.Series("", index=df.index)).astype(str).str.upper().eq("APROBADO")
+    return (by_current_result | initial_audit_rejection) & ~is_approved
 
 
 def _section(title, detail=""):
