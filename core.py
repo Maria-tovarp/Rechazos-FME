@@ -104,7 +104,7 @@ def classify_wo_row(row):
             }
         return {
             "feedback_qty": qty,
-            "result": "PENDIENTE_REVISION_FEEDBACK",
+            "result": "PENDIENTE_APROBACION",
             "current_remark": "",
             "remark_source": "Feedback Remark",
             "needs_fme_message": False,
@@ -176,11 +176,10 @@ def prepare_wo_dataframe(file_or_path):
 def mark_advanced_feedbacks_pending(df, previous_activities):
     """Marks a feedback cycle that advanced since the last WO as awaiting approval.
 
-    WO can retain the prior feedback remark even after the FME has completed the
-    requested correction. The reliable operational signal is an increase in
-    `Feedback Qty`; for example, 1 -> 2 means the second feedback was sent and
-    must now await GNOC approval instead of remaining visible to the FME as an
-    active rejection.
+    A higher `Feedback Qty` with no new feedback remark means the FME submitted
+    the correction and the activity awaits GNOC approval. A feedback remark
+    that explicitly reports a rejection must always remain an active rejection,
+    regardless of the cycle number.
     """
     if df.empty or previous_activities is None or previous_activities.empty:
         return df, 0
@@ -194,7 +193,8 @@ def mark_advanced_feedbacks_pending(df, previous_activities):
         assignment_id = clean_text(row.get("assignment_id"))
         old_qty = previous_qty.get(assignment_id)
         new_qty = parse_int(row.get("feedback_qty"), 0)
-        if old_qty is not None and new_qty > old_qty:
+        feedback_remark = clean_text(row.get("feedback_remark_latest"))
+        if old_qty is not None and new_qty > old_qty and not feedback_remark:
             output.at[index, "current_result"] = "PENDIENTE_APROBACION"
             output.at[index, "current_remark"] = "Feedback registrado. Pendiente de validación y aprobación."
             output.at[index, "remark_source"] = "Seguimiento de feedback"
