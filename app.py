@@ -25,7 +25,8 @@ def apply_enterprise_style():
     <style>
       :root { --navy:#102a43; --blue:#1769aa; --cyan:#12b8c4; --ink:#243b53; --muted:#627d98; --line:#d9e2ec; }
       .stApp { background: linear-gradient(135deg, #f7fafc 0%, #eef5f9 100%); color: var(--ink); }
-      [data-testid="stHeader"] { background: rgba(247,250,252,.88); border-bottom: 1px solid var(--line); }
+      [data-testid="stHeader"] { background: rgba(247,250,252,.88); border-bottom: 1px solid var(--line); min-height: 3rem; }
+      [data-testid="stMainBlockContainer"] { padding-top: 1.65rem !important; }
       [data-testid="stSidebar"] { background: linear-gradient(180deg, #102a43 0%, #163d5c 100%); }
       [data-testid="stSidebar"] * { color: #f7fafc !important; }
       [data-testid="stSidebar"] .stRadio label { border-radius: 8px; padding: .42rem .55rem; margin: .08rem 0; }
