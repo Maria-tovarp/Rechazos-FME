@@ -1,0 +1,13 @@
+.streamlit/secrets.toml
+*.xlsx
+*.xls
+*.csv
+*.json
+*.eml
+__pycache__/
+.pytest_cache/
+.env
+.venv/
+.DS_Store
+.agents/
+.claude/
