@@ -47,6 +47,21 @@ def parse_int(value, default=0):
         return default
 
 
+def is_nd_value(value):
+    """Identifies the N/D placeholder used for missing WO assignments."""
+    return normalize(value).replace(".", "").replace("/", "") in {"ND", "NA"}
+
+
+def wo_has_unassigned_site_and_coordinator(row):
+    """True only when both source assignment fields are explicitly N/D."""
+    site = row.get("Site ID")
+    coordinator = next((
+        row.get(column) for column in ("Coordinator", "Coordinador", "Assigned Coordinator")
+        if clean_text(row.get(column))
+    ), "")
+    return is_nd_value(site) and is_nd_value(coordinator)
+
+
 def extract_cedula(fme_id):
     text = clean_text(fme_id)
     m = re.search(r"\((\d{5,15})\)\s*$", text)
@@ -84,6 +99,17 @@ def classify_wo_row(row):
     audit_status = normalize(row.get("Audit status"))
     audit_remark = clean_text(row.get("Audit remark"))
     feedback_remark = clean_text(row.get("Feedback Remark"))
+
+    # El negocio define que una actividad sin sitio ni coordinador asignados
+    # (ambos N/D en el WO) ya no requiere gestión y se considera aprobada.
+    if wo_has_unassigned_site_and_coordinator(row):
+        return {
+            "feedback_qty": qty,
+            "result": "APROBADO",
+            "current_remark": "N/D en sitio y coordinador: aprobado por regla operativa.",
+            "remark_source": "Regla N/D",
+            "needs_fme_message": False,
+        }
 
     if qty >= 1:
         if is_na_approval(feedback_remark) or is_na_approval(audit_status):
