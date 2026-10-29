@@ -756,7 +756,7 @@ def render_portal_operativo():
         a.metric("Actividades asignadas", len(view))
         b.metric("Rechazos por corregir", int(rejected.sum()))
         c.metric("Aprobadas", int(view["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
-        st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión con tu coordinador.")
+        st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión con Maria A o Ali Villa.")
         st.subheader("Mis rechazos por corregir")
         st.caption("Se incluyen los rechazos iniciales (sin feedback) y los rechazos posteriores a feedback.")
         rejected_view = view[rejected].sort_values(["feedback_qty", "audit_time"], ascending=[True, False])
