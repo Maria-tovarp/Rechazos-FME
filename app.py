@@ -120,6 +120,27 @@ def result_label(value):
     return labels.get(text, clean_text(value).replace("_", " ").title() or "Sin clasificar")
 
 
+def readable_table(df):
+    """Presenta nombres de columna comprensibles para la operación."""
+    return df.rename(columns={
+        "assignment_id": "ID de actividad",
+        "task_id": "ID de tarea",
+        "site_id": "Sitio",
+        "coordinator": "Coordinador",
+        "fme_nombre": "FME asignado",
+        "feedback_qty": "Etapa de feedback",
+        "current_result": "Estado actual",
+        "current_remark": "Observación / corrección solicitada",
+        "remark_source": "Origen de la observación",
+        "task_status": "Estado de la actividad",
+        "audit_time": "Fecha de auditoría",
+        "fme_id": "FME",
+        "coordinador": "Coordinador",
+        "fecha_feedback": "Fecha de feedback",
+        "feedback": "Comentario de feedback",
+    })
+
+
 def render_horizontal_chart(data, label_column, value_column, color, height=None):
     """A compact horizontal bar chart with readable values and labels."""
     if data.empty:
@@ -214,7 +235,7 @@ def render_dashboard():
     c2.metric("Rechazadas", int(df["current_result"].astype(str).str.contains("RECHAZ", na=False).sum()))
     c3.metric("Aprobadas", int((df["current_result"] == "APROBADO").sum()))
     c4.metric("Closed", int(df["task_status"].astype(str).str.lower().eq("closed").sum()))
-    st.dataframe(df[[c for c in ["assignment_id","task_id","site_id","coordinator","fme_nombre","feedback_qty","current_result","current_remark","task_status"] if c in df.columns]], use_container_width=True, hide_index=True)
+    st.dataframe(readable_table(df[[c for c in ["assignment_id","task_id","site_id","coordinator","fme_nombre","feedback_qty","current_result","current_remark","task_status"] if c in df.columns]]), use_container_width=True, hide_index=True)
 
 
 def import_wo():
@@ -237,7 +258,7 @@ def import_wo():
 
     with st.expander("Vista previa del archivo", expanded=False):
         columns = ["assignment_id", "site_id", "fme_nombre", "feedback_qty", "current_result", "remark_source", "current_remark"]
-        st.dataframe(df[[c for c in columns if c in df]].head(50), use_container_width=True, hide_index=True, height=360)
+        st.dataframe(readable_table(df[[c for c in columns if c in df]].head(50)), use_container_width=True, hide_index=True, height=360)
 
     if save_requested:
         progress = st.progress(0, text="Guardando actividades en Supabase...")
@@ -422,7 +443,7 @@ def render_feedback():
     hist = feedback_df()
     if not hist.empty:
         st.subheader("Historial")
-        st.dataframe(hist[[c for c in ["assignment_id","site_id","fme_id","coordinador","fecha_feedback","estado","feedback"] if c in hist.columns]], use_container_width=True, hide_index=True)
+        st.dataframe(readable_table(hist[[c for c in ["assignment_id","site_id","fme_id","coordinador","fecha_feedback","estado","feedback"] if c in hist.columns]]), use_container_width=True, hide_index=True)
         records = feedback_json_records(hist.rename(columns={}))
         st.download_button("⬇️ Exportar JSON", json.dumps(records, ensure_ascii=False, indent=2), "feedback_ows.json", "application/json")
 
@@ -479,7 +500,7 @@ def render_view():
     summary=df.groupby("coordinator",dropna=False).size().reset_index(name="Cantidad").sort_values("Cantidad",ascending=False)
     st.dataframe(summary,use_container_width=True,hide_index=True)
     st.subheader("Detalle")
-    st.dataframe(df[[c for c in ["assignment_id","task_id","site_id","coordinator","fme_nombre","feedback_qty","current_result","current_remark","task_status"] if c in df.columns]],use_container_width=True,hide_index=True)
+    st.dataframe(readable_table(df[[c for c in ["assignment_id","task_id","site_id","coordinator","fme_nombre","feedback_qty","current_result","current_remark","task_status"] if c in df.columns]]),use_container_width=True,hide_index=True)
 
 
 def render_admin():
@@ -680,7 +701,7 @@ def render_rechazos():
     if cycle == "Sin feedback": view = view[view["feedback_qty"].fillna(0).astype(int).eq(0)]
     st.caption(f"Mostrando {len(view):,} de {len(df):,} registros")
     cols = ["assignment_id", "site_id", "coordinator", "fme_nombre", "feedback_qty", "current_result", "remark_source", "current_remark", "task_status", "audit_time"]
-    st.dataframe(view[[c for c in cols if c in view]], use_container_width=True, hide_index=True, height=520)
+    st.dataframe(readable_table(view[[c for c in cols if c in view]]), use_container_width=True, hide_index=True, height=520)
 
 
 def render_historial():
@@ -743,7 +764,7 @@ def render_portal_operativo():
             show["feedback_qty"] = show["feedback_qty"].map(feedback_stage_label)
         if "current_result" in show:
             show["current_result"] = show["current_result"].map(result_label)
-        st.dataframe(show, use_container_width=True, hide_index=True, height=420)
+        st.dataframe(readable_table(show), use_container_width=True, hide_index=True, height=420)
 
     with fme_tab:
         fmes = sorted(df["fme_nombre"].dropna().astype(str).unique(), key=str.casefold)
