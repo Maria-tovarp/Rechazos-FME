@@ -535,6 +535,27 @@ def _is_rejection(series):
     return series.astype(str).str.contains("RECHAZ", case=False, na=False)
 
 
+def _fme_visible_rejections(df):
+    """Rechazos que debe ver el técnico, incluidos los de auditoría inicial.
+
+    Algunas importaciones antiguas conservaron el texto de rechazo en los campos
+    originales de auditoría aunque `current_result` no quedó clasificado como
+    RECHAZADO. En la vista FME esos casos de feedback 0 también son pendientes
+    que el técnico debe corregir.
+    """
+    if df.empty:
+        return pd.Series(False, index=df.index, dtype=bool)
+    by_current_result = _is_rejection(df.get("current_result", pd.Series("", index=df.index)))
+    feedback_qty = pd.to_numeric(df.get("feedback_qty", pd.Series(0, index=df.index)), errors="coerce").fillna(0)
+    audit_text = (
+        df.get("audit_status", pd.Series("", index=df.index)).fillna("").astype(str)
+        + " "
+        + df.get("audit_remark_original", pd.Series("", index=df.index)).fillna("").astype(str)
+    )
+    initial_audit_rejection = feedback_qty.eq(0) & audit_text.str.contains("RECHAZ|REJECT", case=False, na=False)
+    return by_current_result | initial_audit_rejection
+
+
 def _section(title, detail=""):
     st.header(title)
     if detail:
@@ -728,13 +749,16 @@ def render_portal_operativo():
         fmes = sorted(df["fme_nombre"].dropna().astype(str).unique(), key=str.casefold)
         fme_name = st.selectbox("Selecciona el FME", fmes, key="portal_fme")
         view = df[df["fme_nombre"].eq(fme_name)].copy()
-        rejected = _is_rejection(view["current_result"])
+        # Incluye rechazos de auditoría inicial aunque provengan de una carga
+        # anterior cuyo `current_result` no se haya clasificado correctamente.
+        rejected = _fme_visible_rejections(view)
         a, b, c = st.columns(3)
         a.metric("Actividades asignadas", len(view))
         b.metric("Rechazos por corregir", int(rejected.sum()))
         c.metric("Aprobadas", int(view["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
         st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión con tu coordinador.")
-        st.subheader("Mis actividades con rechazo")
+        st.subheader("Mis rechazos por corregir")
+        st.caption("Se incluyen los rechazos iniciales (sin feedback) y los rechazos posteriores a feedback.")
         rejected_view = view[rejected].sort_values(["feedback_qty", "audit_time"], ascending=[True, False])
         if rejected_view.empty:
             st.success("No tienes rechazos activos en este momento.")
