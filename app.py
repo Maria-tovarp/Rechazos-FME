@@ -9,7 +9,8 @@ import streamlit as st
 
 from core import (
     prepare_wo_dataframe, coordinator_map_from_excel, coordinators_master_from_excel, fmes_from_excel,
-    make_fme_message, make_fme_group_message, feedback_json_records, clean_text
+    make_fme_message, make_fme_group_message, feedback_json_records, clean_text,
+    mark_advanced_feedbacks_pending
 )
 from database import (
     get_client, upsert_many, replace_many, select_all, coordinator_for_site, fme_for_cedula,
@@ -116,6 +117,7 @@ def result_label(value):
         "RECHAZADO": "Rechazado",
         "RECHAZADO_NUEVAMENTE": "Rechazado nuevamente",
         "APROBADO": "Aprobado",
+        "PENDIENTE_APROBACION": "Pendiente de aprobación",
         "PENDIENTE_REVISION_FEEDBACK": "Pendiente de revisión",
         "SIN_CLASIFICAR": "Sin clasificar",
     }
@@ -249,6 +251,9 @@ def import_wo():
         return
     try:
         df = prepare_wo_dataframe(up)
+        # Si el ciclo aumentó frente al WO anterior, el FME ya realizó la
+        # corrección y la actividad queda a la espera de aprobación.
+        df, advanced_feedbacks = mark_advanced_feedbacks_pending(df, activities_df())
     except Exception as e:
         st.error(f"No se pudo leer el archivo: {e}")
         return
@@ -257,6 +262,8 @@ def import_wo():
     total.metric("Actividades detectadas", f"{len(df):,}")
     rejected.metric("Rechazos detectados", int(df["current_result"].astype(str).str.contains("RECHAZ", na=False).sum()))
     approved.metric("Aprobadas", int(df["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
+    if advanced_feedbacks:
+        st.info(f"{advanced_feedbacks:,} actividad(es) avanzaron de ciclo y quedarán como pendientes de aprobación.")
     save_requested = st.button("Guardar/actualizar en Supabase", type="primary", key="save_wo", use_container_width=True)
 
     with st.expander("Vista previa del archivo", expanded=False):
@@ -626,10 +633,10 @@ def render_dashboard_v2():
     approved = int(df["current_result"].astype(str).str.upper().eq("APROBADO").sum())
     again = int(df["current_result"].astype(str).str.upper().eq("RECHAZADO_NUEVAMENTE").sum())
     closed_count = int(df["task_status"].astype(str).str.lower().eq("closed").sum())
-    feedback_zero = int(df["feedback_qty"].fillna(0).astype(int).eq(0).sum())
+    pending_approval = int(df["current_result"].astype(str).str.upper().eq("PENDIENTE_APROBACION").sum())
     cards = [
         ("Rechazos activos", active), ("Pendientes de notificar", max(active - sent, 0)),
-        ("WhatsApp enviados", sent), ("Pendientes de feedback", feedback_zero),
+        ("WhatsApp enviados", sent), ("Pendientes de aprobación", pending_approval),
         ("Aprobados", approved), ("Rechazados nuevamente", again),
         ("Actividades Closed", closed_count),
         ("Exclusiones pendientes", int(closed.get("email_status", pd.Series(dtype=str)).astype(str).str.upper().eq("PENDIENTE").sum()) if not closed.empty else 0),
@@ -744,11 +751,11 @@ def render_portal_operativo():
         coordinator = st.selectbox("Selecciona tu nombre", coordinators, key="portal_coordinator")
         view = df[df["coordinator"].eq(coordinator)].copy()
         rejected = _is_rejection(view["current_result"])
-        feedback_pending = view["current_result"].astype(str).str.upper().eq("PENDIENTE_REVISION_FEEDBACK")
+        feedback_pending = view["current_result"].astype(str).str.upper().isin(["PENDIENTE_REVISION_FEEDBACK", "PENDIENTE_APROBACION"])
         a, b, c, d = st.columns(4)
         a.metric("Actividades", len(view))
         b.metric("Rechazos activos", int(rejected.sum()))
-        c.metric("Pendientes de feedback", int(feedback_pending.sum()))
+        c.metric("Pendientes de aprobación", int(feedback_pending.sum()))
         d.metric("Actividades Closed", int(view["task_status"].astype(str).str.lower().eq("closed").sum()))
         st.subheader("Resumen por FME")
         summary = (
