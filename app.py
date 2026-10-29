@@ -802,20 +802,19 @@ if not db_ok():
 
 if public_portal:
     render_portal_operativo()
-    st.stop()
-
-st.sidebar.title("Gestión Rechazos · V12")
-st.sidebar.caption("Centro de control operativo")
-navigation = ["Dashboard", "Portal Coordinadores / FME", "Rechazos", "Importar WO", "Mensajes FME", "Feedback OWS", "Closed / Exclusiones", "Vista coordinadores", "Historial", "Exportar", "Administración / Migración"]
-page = st.sidebar.radio("Módulo", navigation, index=0, key="main_navigation")
-if page=="Dashboard": render_dashboard_v2()
-elif page=="Portal Coordinadores / FME": render_portal_operativo()
-elif page=="Rechazos": render_rechazos()
-elif page=="Importar WO": import_wo()
-elif page=="Mensajes FME": render_messages_v2()
-elif page=="Feedback OWS": render_feedback()
-elif page=="Closed / Exclusiones": render_closed()
-elif page=="Vista coordinadores": render_view()
-elif page=="Historial": render_historial()
-elif page=="Exportar": render_exportar()
-elif page=="Administración / Migración": render_admin()
+else:
+    st.sidebar.title("Gestión Rechazos · V12")
+    st.sidebar.caption("Centro de control operativo")
+    navigation = ["Dashboard", "Portal Coordinadores / FME", "Rechazos", "Importar WO", "Mensajes FME", "Feedback OWS", "Closed / Exclusiones", "Vista coordinadores", "Historial", "Exportar", "Administración / Migración"]
+    page = st.sidebar.radio("Módulo", navigation, index=0, key="main_navigation")
+    if page=="Dashboard": render_dashboard_v2()
+    elif page=="Portal Coordinadores / FME": render_portal_operativo()
+    elif page=="Rechazos": render_rechazos()
+    elif page=="Importar WO": import_wo()
+    elif page=="Mensajes FME": render_messages_v2()
+    elif page=="Feedback OWS": render_feedback()
+    elif page=="Closed / Exclusiones": render_closed()
+    elif page=="Vista coordinadores": render_view()
+    elif page=="Historial": render_historial()
+    elif page=="Exportar": render_exportar()
+    elif page=="Administración / Migración": render_admin()
