@@ -111,6 +111,18 @@ def classify_wo_row(row):
             "needs_fme_message": False,
         }
 
+    # Regla operativa: Feedback Qty 2 confirma que el FME ya realizó el
+    # feedback y la actividad queda en espera de aprobación, aunque el WO
+    # mantenga el texto del rechazo previo en Feedback Remark.
+    if qty == 2:
+        return {
+            "feedback_qty": qty,
+            "result": "PENDIENTE_APROBACION",
+            "current_remark": "Segundo feedback realizado. Pendiente de validación y aprobación.",
+            "remark_source": "Seguimiento de feedback",
+            "needs_fme_message": False,
+        }
+
     if qty >= 1:
         if is_na_approval(feedback_remark) or is_na_approval(audit_status):
             return {
