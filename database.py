@@ -87,7 +87,8 @@ def fme_for_cedula(cedula):
 
 def upsert_activity(row, coordinator):
     payload = dict(row)
-    payload["audit_time"] = row.get("audit_time").isoformat() if getattr(row.get("audit_time"), "isoformat", None) else None
+    audit_time = row.get("audit_time")
+    payload["audit_time"] = audit_time.isoformat() if getattr(audit_time, "isoformat", None) else (audit_time or None)
     payload["coordinator"] = coordinator.get("coordinator", "TLF")
     payload["coordinator_source"] = coordinator.get("source", "Asignación TLF")
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()

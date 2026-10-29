@@ -10,7 +10,7 @@ import streamlit as st
 from core import (
     prepare_wo_dataframe, coordinator_map_from_excel, coordinators_master_from_excel, fmes_from_excel,
     make_fme_message, make_fme_group_message, feedback_json_records, clean_text,
-    mark_advanced_feedbacks_pending
+    mark_advanced_feedbacks_pending, mark_missing_activities_approved
 )
 from database import (
     get_client, upsert_many, replace_many, select_all, coordinator_for_site, fme_for_cedula,
@@ -251,9 +251,11 @@ def import_wo():
         return
     try:
         df = prepare_wo_dataframe(up)
+        previous_activities = activities_df()
         # Si el ciclo aumentó frente al WO anterior, el FME ya realizó la
         # corrección y la actividad queda a la espera de aprobación.
-        df, advanced_feedbacks = mark_advanced_feedbacks_pending(df, activities_df())
+        df, advanced_feedbacks = mark_advanced_feedbacks_pending(df, previous_activities)
+        missing_approved = mark_missing_activities_approved(previous_activities, df["assignment_id"])
     except Exception as e:
         st.error(f"No se pudo leer el archivo: {e}")
         return
@@ -264,6 +266,8 @@ def import_wo():
     approved.metric("Aprobadas", int(df["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
     if advanced_feedbacks:
         st.info(f"{advanced_feedbacks:,} actividad(es) avanzaron de ciclo y quedarán como pendientes de aprobación.")
+    if missing_approved:
+        st.success(f"{len(missing_approved):,} actividad(es) de la exportación anterior no aparecen en este WO y se marcarán como aprobadas al guardar.")
     save_requested = st.button("Guardar/actualizar en Supabase", type="primary", key="save_wo", use_container_width=True)
 
     with st.expander("Vista previa del archivo", expanded=False):
@@ -271,16 +275,18 @@ def import_wo():
         st.dataframe(readable_table(df[[c for c in columns if c in df]].head(50)), use_container_width=True, hide_index=True, height=360)
 
     if save_requested:
+        records_to_save = [row.to_dict() for _, row in df.iterrows()]
+        records_to_approve = missing_approved
+        total_to_process = len(records_to_save) + len(records_to_approve)
         progress = st.progress(0, text="Guardando actividades en Supabase...")
         try:
-            for index, (_, row) in enumerate(df.iterrows(), start=1):
-                record = row.to_dict()
+            for index, record in enumerate(records_to_save + records_to_approve, start=1):
                 coordinator = coordinator_for_site(record["site_id"])
                 upsert_activity(record, coordinator)
                 insert_cycle(record, coordinator)
-                progress.progress(index / len(df), text=f"Guardando {index:,} de {len(df):,} actividades...")
+                progress.progress(index / total_to_process, text=f"Guardando {index:,} de {total_to_process:,} actividades...")
             progress.empty()
-            st.success(f"{len(df):,} actividades procesadas. Los ciclos anteriores no se eliminan.")
+            st.success(f"{len(records_to_save):,} actividades importadas y {len(records_to_approve):,} aprobadas por comparación. Los ciclos anteriores no se eliminan.")
         except Exception as e:
             progress.empty()
             st.error(f"No se pudo guardar el archivo en Supabase: {e}")

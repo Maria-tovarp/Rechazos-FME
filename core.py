@@ -229,6 +229,32 @@ def mark_advanced_feedbacks_pending(df, previous_activities):
     return output, advanced
 
 
+def mark_missing_activities_approved(previous_activities, incoming_assignment_ids):
+    """Returns active records absent from the next complete WO export as approved.
+
+    Each import is treated as the current complete WO export. Therefore, if an
+    activity that was still active in the previous state no longer appears in
+    the new export, it has left the rejection workflow and is closed as
+    approved by comparison.
+    """
+    if previous_activities is None or previous_activities.empty:
+        return []
+    incoming_ids = {clean_text(value) for value in incoming_assignment_ids if clean_text(value)}
+    approved = []
+    for _, row in previous_activities.iterrows():
+        assignment_id = clean_text(row.get("assignment_id"))
+        current_result = normalize(row.get("current_result"))
+        if not assignment_id or assignment_id in incoming_ids or current_result == "APROBADO":
+            continue
+        record = row.to_dict()
+        record["current_result"] = "APROBADO"
+        record["current_remark"] = "No aparece en la exportación WO posterior: aprobado por comparación de exportaciones."
+        record["remark_source"] = "Comparación de exportaciones"
+        record["needs_fme_message"] = False
+        approved.append(record)
+    return approved
+
+
 def _valid_coordinator(value):
     txt = clean_text(value)
     return bool(txt) and normalize(txt) not in {"#N/A", "N/A", "NA", "NAN", "-", "0", "0.0"}
