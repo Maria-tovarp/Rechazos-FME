@@ -770,9 +770,22 @@ def render_portal_operativo():
         st.dataframe(readable_table(show), use_container_width=True, hide_index=True, height=420)
 
     with fme_tab:
-        fmes = sorted(df["fme_nombre"].dropna().astype(str).unique(), key=str.casefold)
+        coordinators = coordinator_filter_options(df["coordinator"].dropna().astype(str).unique())
+        coordinator = st.selectbox(
+            "Selecciona tu coordinador",
+            ["Selecciona un coordinador"] + coordinators,
+            key="portal_fme_coordinator",
+        )
+        if coordinator == "Selecciona un coordinador":
+            st.info("Primero selecciona el coordinador para ver sus FME asignados.")
+            return
+        coordinator_view = df[df["coordinator"].eq(coordinator)].copy()
+        fmes = sorted(coordinator_view["fme_nombre"].dropna().astype(str).unique(), key=str.casefold)
+        if not fmes:
+            st.info("Este coordinador no tiene FME asignados en las actividades cargadas.")
+            return
         fme_name = st.selectbox("Selecciona el FME", fmes, key="portal_fme")
-        view = df[df["fme_nombre"].eq(fme_name)].copy()
+        view = coordinator_view[coordinator_view["fme_nombre"].eq(fme_name)].copy()
         # Incluye rechazos de auditoría inicial aunque provengan de una carga
         # anterior cuyo `current_result` no se haya clasificado correctamente.
         rejected = _fme_visible_rejections(view)
