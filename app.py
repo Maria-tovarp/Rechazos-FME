@@ -708,7 +708,7 @@ def render_historial():
 
 
 def render_portal_operativo():
-    _section("Portal de Coordinadores y FME", "Consulta operativa de actividades, rechazos y ciclos de feedback.")
+    _section("Rechazos FME", "Consulta operativa de actividades, rechazos y ciclos de feedback.")
     df = activities_df()
     if df.empty:
         st.info("No hay actividades disponibles todavía.")
