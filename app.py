@@ -790,18 +790,24 @@ def render_exportar():
         st.caption("Trazabilidad de notificaciones enviadas y pendientes.")
 
 
-if not login_gate():
+# El enlace compartido muestra exclusivamente el portal de consulta. No carga
+# el menú ni los módulos internos y no solicita la contraseña administrativa.
+requested_view = str(st.query_params.get("vista", "")).strip().lower()
+public_portal = requested_view == "portal"
+
+if not public_portal and not login_gate():
     st.stop()
 if not db_ok():
+    st.stop()
+
+if public_portal:
+    render_portal_operativo()
     st.stop()
 
 st.sidebar.title("Gestión Rechazos · V12")
 st.sidebar.caption("Centro de control operativo")
 navigation = ["Dashboard", "Portal Coordinadores / FME", "Rechazos", "Importar WO", "Mensajes FME", "Feedback OWS", "Closed / Exclusiones", "Vista coordinadores", "Historial", "Exportar", "Administración / Migración"]
-# Enlace compartible: ?vista=portal abre directamente la consulta de coordinadores y FME.
-requested_view = str(st.query_params.get("vista", "")).strip().lower()
-default_index = navigation.index("Portal Coordinadores / FME") if requested_view == "portal" else 0
-page = st.sidebar.radio("Módulo", navigation, index=default_index, key="main_navigation")
+page = st.sidebar.radio("Módulo", navigation, index=0, key="main_navigation")
 if page=="Dashboard": render_dashboard_v2()
 elif page=="Portal Coordinadores / FME": render_portal_operativo()
 elif page=="Rechazos": render_rechazos()
