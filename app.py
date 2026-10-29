@@ -798,7 +798,10 @@ def render_portal_operativo():
             st.info("Este coordinador no tiene FME asignados en las actividades cargadas.")
             return
         fme_name = st.selectbox("Selecciona el FME", fmes, key="portal_fme")
-        view = coordinator_view[coordinator_view["fme_nombre"].eq(fme_name)].copy()
+        # El coordinador sirve para encontrar al FME, pero el técnico puede
+        # tener sitios asignados a más de un coordinador. Su vista debe
+        # consolidar todas sus actividades para no ocultar rechazos.
+        view = df[df["fme_nombre"].eq(fme_name)].copy()
         # Incluye rechazos de auditoría inicial aunque provengan de una carga
         # anterior cuyo `current_result` no se haya clasificado correctamente.
         rejected = _fme_visible_rejections(view)
@@ -806,6 +809,9 @@ def render_portal_operativo():
         a.metric("Actividades asignadas", len(view))
         b.metric("Rechazos por corregir", int(rejected.sum()))
         c.metric("Aprobadas", int(view["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
+        related_coordinators = sorted(view["coordinator"].dropna().astype(str).unique(), key=str.casefold)
+        if len(related_coordinators) > 1:
+            st.caption(f"Este FME tiene actividades asignadas a: {', '.join(related_coordinators)}.")
         st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión con Maria A o Ali Villa.")
         st.subheader("Mis rechazos por corregir")
         st.caption("Se incluyen los rechazos iniciales (sin feedback) y los rechazos posteriores a feedback.")
