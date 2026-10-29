@@ -61,20 +61,27 @@ def coordinator_for_site(site_id):
     sb = get_client()
     site_id = (site_id or "").strip()
     if not site_id:
-        return {"coordinator":"TLF","source":"Asignación TLF","priority":99}
+        return {"coordinator":"Isabel Hernandez","source":"Regla TLF / sin sitio","priority":99}
+    if site_id.upper().startswith("TLF"):
+        return {"coordinator":"Isabel Hernandez","source":"Regla TLF","priority":0}
     try:
         r = sb.rpc("buscar_coordinador", {"p_site_id": site_id}).execute().data or []
         if r:
-            return {"coordinator": r[0].get("coordinador", "TLF"), "source": r[0].get("fuente", "Asignación TLF"), "priority": 1}
+            coordinator = r[0].get("coordinador", "TLF")
+            if str(coordinator).strip().upper() in {"TLF", "POR VALIDAR"}:
+                coordinator = "Isabel Hernandez"
+            return {"coordinator": coordinator, "source": r[0].get("fuente", "Asignación TLF"), "priority": 1}
     except Exception:
         pass
     try:
         r = sb.table("site_coordinator_map").select("coordinator,source,priority").eq("site_code", site_id).limit(1).execute().data
         if r:
+            if str(r[0].get("coordinator", "")).strip().upper() in {"TLF", "POR VALIDAR"}:
+                r[0]["coordinator"] = "Isabel Hernandez"
             return r[0]
     except Exception:
         pass
-    return {"coordinator":"TLF","source":"Asignación TLF","priority":99}
+    return {"coordinator":"Isabel Hernandez","source":"Regla TLF","priority":99}
 
 
 def fme_for_cedula(cedula):
