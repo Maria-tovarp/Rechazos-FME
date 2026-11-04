@@ -28,11 +28,27 @@ COORDINATOR_ALIASES = {
     "POR VALIDAR": "Isabel Hernandez",
 }
 
+# Reasignación operativa vigente para el maestro de coordinadores. La clave
+# se evalúa una sola vez sobre el responsable que viene en el archivo: los
+# sitios de Boris pasan a Luis y los que ya eran de Luis pasan a Elkis. No se
+# encadena el resultado, por lo que un sitio de Boris no termina en Elkis.
+COORDINATOR_REASSIGNMENTS = {
+    "BORIS DEL CRISTO": "Luis Ariza",
+    "BORIS DEL CRISTO PG": "Luis Ariza",
+    "LUIS ARIZA": "Elkis Sandoval",
+}
+
 
 def canonical_coordinator(value):
     """Keep approved coordinator names consistent across Excel imports."""
     text = " ".join(clean_text(value).split())
     return COORDINATOR_ALIASES.get(normalize(text), text)
+
+
+def active_coordinator(value):
+    """Apply the current coordinator reassignment to an imported value."""
+    coordinator = canonical_coordinator(value)
+    return COORDINATOR_REASSIGNMENTS.get(normalize(coordinator), coordinator)
 
 
 def is_na_approval(value):
@@ -296,7 +312,7 @@ def coordinators_master_from_excel(file_or_path):
 
     rows = []
     for _, r in main.iterrows():
-        coord = canonical_coordinator(r.get("Coordinador"))
+        coord = active_coordinator(r.get("Coordinador"))
         if not _valid_coordinator(coord):
             continue
         codigo = clean_text(r.get("CODIGO"))
@@ -321,7 +337,7 @@ def coordinators_master_from_excel(file_or_path):
         if "SITIO" in h1.columns and "COORDINADOR" in h1.columns:
             for _, r in h1.iterrows():
                 site = clean_text(r.get("SITIO"))
-                coord = canonical_coordinator(r.get("COORDINADOR"))
+                coord = active_coordinator(r.get("COORDINADOR"))
                 if site and _valid_coordinator(coord):
                     rows.append({
                         "codigo": None,
@@ -360,7 +376,7 @@ def coordinator_map_from_excel(file_or_path):
 
     frames = []
     for _, r in main.iterrows():
-        coord = canonical_coordinator(r.get("Coordinador"))
+        coord = active_coordinator(r.get("Coordinador"))
         if not _valid_coordinator(coord):
             continue
         codigo = clean_text(r.get("CODIGO"))
@@ -375,7 +391,7 @@ def coordinator_map_from_excel(file_or_path):
         if "SITIO" in h1.columns and "COORDINADOR" in h1.columns:
             for _, r in h1.iterrows():
                 site = clean_text(r.get("SITIO"))
-                coord = canonical_coordinator(r.get("COORDINADOR"))
+                coord = active_coordinator(r.get("COORDINADOR"))
                 if site and _valid_coordinator(coord):
                     frames.append({"site_code": site, "coordinator": coord, "source": "Hoja1-SITIO", "priority": 3})
 
@@ -432,6 +448,7 @@ def feedback_json_records(df):
 
 def make_fme_message(row):
     cycle = parse_int(row.get("feedback_qty"), 0)
+    task = clean_text(row.get("task_id")) or clean_text(row.get("assignment_id"))
     if cycle == 0:
         intro = "La actividad fue rechazada en auditoría GNOC."
     else:
@@ -440,6 +457,7 @@ def make_fme_message(row):
         f"Buen día. {intro}\n\n"
         f"Sitio: {clean_text(row.get('site_id'))}\n"
         f"Actividad: {clean_text(row.get('assignment_id'))}\n"
+        f"Task ID: {task}\n"
         f"Observación: {clean_text(row.get('current_remark'))}\n\n"
         "Por favor validar y realizar la corrección correspondiente."
     )

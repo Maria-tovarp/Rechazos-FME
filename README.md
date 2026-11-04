@@ -11,6 +11,7 @@ V12 elimina la dependencia diaria de los archivos maestros y usa Supabase como a
   2. `Libro3[CodigoNetco]`
   3. `Hoja1[SITIO]`
 - `#N/A`, `N/A`, `NA`, `NAN` y `-` no se aceptan como coordinador válido.
+- Durante la carga, los sitios que vengan de Boris del Cristo se asignan a Luis Ariza; los que originalmente vengan de Luis Ariza se asignan a Elkis Sandoval. La reasignación se aplica una sola vez, sin encadenar Boris hacia Elkis.
 - La lectura se hace por **nombre de encabezado**, no por posición de columna.
 - Se guarda un maestro detallado en `coordinadores` y un mapa rápido en `site_coordinator_map`.
 - El uso diario solo requiere cargar `WO Result Query`.

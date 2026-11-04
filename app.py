@@ -263,7 +263,8 @@ def import_wo():
     total, rejected, approved = st.columns(3)
     total.metric("Actividades detectadas", f"{len(df):,}")
     rejected.metric("Rechazos detectados", int(df["current_result"].astype(str).str.contains("RECHAZ", na=False).sum()))
-    approved.metric("Aprobadas", int(df["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
+    approved_in_file = int(df["current_result"].astype(str).str.upper().eq("APROBADO").sum())
+    approved.metric("Aprobadas", approved_in_file + len(missing_approved))
     if advanced_feedbacks:
         st.info(f"{advanced_feedbacks:,} actividad(es) avanzaron de ciclo y quedarán como pendientes de aprobación.")
     if missing_approved:
@@ -524,7 +525,7 @@ def render_admin():
     st.info("El uso diario solo requiere el WO Result Query. Esta sección se usa cuando cambie DATA COORDINADORES o CUADRILLAS.")
 
     st.subheader("1. DATA COORDINADORES - NUEVA.xlsx")
-    st.caption("Prioridad exacta: Libro3[CODIGO] → Libro3[CodigoNetco] → Hoja1[SITIO]. Los coordinadores #N/A se ignoran.")
+    st.caption("Prioridad exacta: Libro3[CODIGO] → Libro3[CodigoNetco] → Hoja1[SITIO]. Los coordinadores #N/A se ignoran. Reasignación vigente: Boris del Cristo → Luis Ariza y Luis Ariza → Elkis Sandoval.")
     coord=st.file_uploader("DATA COORDINADORES - NUEVA.xlsx",type=["xlsx"],key="coord")
     if coord:
         try:
@@ -823,7 +824,11 @@ def render_portal_operativo():
             for _, row in rejected_view.iterrows():
                 stage = feedback_stage_label(row.get("feedback_qty", 0))
                 with st.expander(f"{row.get('site_id', '')} · {stage} · {result_label(row.get('current_result', ''))}", expanded=False):
-                    st.caption(f"Actividad: {row.get('assignment_id','')} · Coordinador: {row.get('coordinator','')}")
+                    st.caption(
+                        f"Actividad: {row.get('assignment_id','')} · "
+                        f"Task ID: {row.get('task_id') or row.get('assignment_id','')} · "
+                        f"Coordinador: {row.get('coordinator','')}"
+                    )
                     st.markdown("**Observación vigente**")
                     st.write(row.get("current_remark", "Sin observación registrada"))
 
