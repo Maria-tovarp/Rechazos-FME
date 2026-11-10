@@ -483,7 +483,10 @@ def render_closed():
     if df.empty:
         st.success("No hay actividades Closed rechazadas pendientes en la vista actual.")
         return
-    labels={f"{r['assignment_id']} | {r.get('site_id','')}":r for _,r in df.iterrows()}
+    labels={
+        f"{r['assignment_id']} | Task ID: {r.get('task_id') or r['assignment_id']} | {r.get('site_id','')}": r
+        for _, r in df.iterrows()
+    }
     label=st.selectbox("Actividad Closed", list(labels.keys()))
     r=labels[label]
     closed_date=st.date_input("Fecha de cierre consultada en OWS", value=date.today())
