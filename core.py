@@ -24,7 +24,7 @@ COORDINATOR_ALIASES = {
     "BORIS DEL CRISTO": "Boris Del Cristo",
     "ISABEL HERNANDEZ": "Isabel Hernandez",
     "FIJA": "Fija",
-    "TLF": "Isabel Hernandez",
+    "TLF": "Fija",
     "POR VALIDAR": "Isabel Hernandez",
 }
 

@@ -763,11 +763,6 @@ def render_portal_operativo():
         view = df[df["coordinator"].eq(coordinator)].copy()
         rejected = _is_rejection(view["current_result"])
         feedback_pending = view["current_result"].astype(str).str.upper().isin(["PENDIENTE_REVISION_FEEDBACK", "PENDIENTE_APROBACION"])
-        rejected_metric, pending_metric, closed_metric = st.columns(3)
-        rejected_metric.metric("Rechazos activos", int(rejected.sum()))
-        pending_metric.metric("Pendientes de aprobación", int(feedback_pending.sum()))
-        closed_metric.metric("Actividades Closed", int(view["task_status"].astype(str).str.lower().eq("closed").sum()))
-        st.subheader("Resumen por FME")
         # Un FME puede tener actividades bajo más de un coordinador. El
         # resumen conserva los FME del coordinador seleccionado, pero cuenta
         # todos sus rechazos para que coincida con su vista operativa.
@@ -781,6 +776,11 @@ def render_portal_operativo():
             .rename(columns={"fme_nombre": "FME"})
             .sort_values("Rechazos", ascending=False)
         )
+        rejected_metric, pending_metric, closed_metric = st.columns(3)
+        rejected_metric.metric("Rechazos activos", int(summary["Rechazos"].sum()))
+        pending_metric.metric("Pendientes de aprobación", int(feedback_pending.sum()))
+        closed_metric.metric("Actividades Closed", int(view["task_status"].astype(str).str.lower().eq("closed").sum()))
+        st.subheader("Resumen por FME")
         st.caption("Los rechazos se consolidan aunque el FME tenga actividades con otro coordinador.")
         st.dataframe(summary, use_container_width=True, hide_index=True)
         st.subheader("Actividades a gestionar")

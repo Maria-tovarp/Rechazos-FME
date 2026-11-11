@@ -63,12 +63,14 @@ def coordinator_for_site(site_id):
     if not site_id:
         return {"coordinator":"Isabel Hernandez","source":"Regla TLF / sin sitio","priority":99}
     if site_id.upper().startswith("TLF"):
-        return {"coordinator":"Isabel Hernandez","source":"Regla TLF","priority":0}
+        return {"coordinator":"Fija","source":"Regla TLF","priority":0}
     try:
         r = sb.rpc("buscar_coordinador", {"p_site_id": site_id}).execute().data or []
         if r:
             coordinator = r[0].get("coordinador", "TLF")
-            if str(coordinator).strip().upper() in {"TLF", "POR VALIDAR"}:
+            if str(coordinator).strip().upper() == "TLF":
+                coordinator = "Fija"
+            elif str(coordinator).strip().upper() == "POR VALIDAR":
                 coordinator = "Isabel Hernandez"
             return {"coordinator": coordinator, "source": r[0].get("fuente", "Asignación TLF"), "priority": 1}
     except Exception:
@@ -76,7 +78,9 @@ def coordinator_for_site(site_id):
     try:
         r = sb.table("site_coordinator_map").select("coordinator,source,priority").eq("site_code", site_id).limit(1).execute().data
         if r:
-            if str(r[0].get("coordinator", "")).strip().upper() in {"TLF", "POR VALIDAR"}:
+            if str(r[0].get("coordinator", "")).strip().upper() == "TLF":
+                r[0]["coordinator"] = "Fija"
+            elif str(r[0].get("coordinator", "")).strip().upper() == "POR VALIDAR":
                 r[0]["coordinator"] = "Isabel Hernandez"
             return r[0]
     except Exception:
