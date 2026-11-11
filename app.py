@@ -809,14 +809,13 @@ def render_portal_operativo():
         # Incluye rechazos de auditoría inicial aunque provengan de una carga
         # anterior cuyo `current_result` no se haya clasificado correctamente.
         rejected = _fme_visible_rejections(view)
-        a, b, c = st.columns(3)
-        a.metric("Actividades asignadas", len(view))
-        b.metric("Rechazos por corregir", int(rejected.sum()))
-        c.metric("Aprobadas", int(view["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
+        rejected_metric, approved_metric = st.columns(2)
+        rejected_metric.metric("Rechazos por corregir", int(rejected.sum()))
+        approved_metric.metric("Aprobadas", int(view["current_result"].astype(str).str.upper().eq("APROBADO").sum()))
         related_coordinators = sorted(view["coordinator"].dropna().astype(str).unique(), key=str.casefold)
         if len(related_coordinators) > 1:
             st.caption(f"Este FME tiene actividades asignadas a: {', '.join(related_coordinators)}.")
-        st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión con Maria A o Ali Villa.")
+        st.info("Revisa cada observación, realiza la corrección solicitada y confirma la gestión.")
         st.subheader("Mis rechazos por corregir")
         st.caption("Se incluyen los rechazos iniciales (sin feedback) y los rechazos posteriores a feedback.")
         rejected_view = view[rejected].sort_values(["feedback_qty", "audit_time"], ascending=[True, False])
